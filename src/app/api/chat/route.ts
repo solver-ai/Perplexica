@@ -272,7 +272,8 @@ export const POST = async (req: Request) => {
       );
     }
 
-    const stream = await handler.searchAndAnswer(
+    // const stream = await handler.searchAndAnswer(
+    const stream = await handler.searchAndAnswerWithLogging(
       message.content,
       history,
       llm,

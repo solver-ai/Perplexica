@@ -119,7 +119,8 @@ export const POST = async (req: Request) => {
       return Response.json({ message: 'Invalid focus mode' }, { status: 400 });
     }
 
-    const emitter = await searchHandler.searchAndAnswer(
+    // const emitter = await searchHandler.searchAndAnswer(
+    const emitter = await searchHandler.searchAndAnswerWithLogging(
       body.query,
       history,
       llm,
