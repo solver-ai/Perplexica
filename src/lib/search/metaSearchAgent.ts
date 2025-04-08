@@ -546,17 +546,12 @@ class MetaSearchAgent implements MetaSearchAgentType {
     message: string,
   ) {
     console.log(`==================================================`);
-    console.log(`Input message: ${message}`);
+    console.log(`Input message:`)
+    console.log(`'''\n${message}\n'''`);
 
     let totalStartTime = Date.now();
     let startTime = Date.now();
     for await (const event of stream) {
-      if (
-        event.event === 'on_chain_start' &&
-        event.name === 'FinalSourceRetriever'
-      ) {
-        console.log(`Retrieval: Started`);
-      }
       if (
         event.event === 'on_chain_end' &&
         event.name === 'FinalSourceRetriever'
@@ -567,8 +562,6 @@ class MetaSearchAgent implements MetaSearchAgentType {
         );
         
         // Update start time for response generation
-        const elapsedTime = Date.now() - startTime;
-        console.log(`Retrieval: ${elapsedTime / 1000}s`);
         startTime = Date.now();
       }
       if (
@@ -625,14 +618,16 @@ class MetaSearchAgent implements MetaSearchAgentType {
               query,
             });
             const elapsedTime1 = Date.now() - startTime1;
-            console.log(`  - Generate query: ${elapsedTime1 / 1000}s`);
+            console.log(`Query generation: ${elapsedTime1 / 1000}s`);
+            console.log(`└─ Generated query:`)
+            console.log(`'''\n${generated_query}\n'''`);
 
             // 2. Search retriever
             const searchRetrieverChain = await this.createRetrieverChain(llm);
             const startTime2 = Date.now();
             const searchRetrieverResult = await searchRetrieverChain.invoke(generated_query);
             const elapsedTime2 = Date.now() - startTime2;
-            console.log(`  - Search retriever: ${elapsedTime2 / 1000}s`);
+            console.log(`Search retriever: ${elapsedTime2 / 1000}s`);
 
             query = searchRetrieverResult.query;
             docs = searchRetrieverResult.docs;
@@ -648,7 +643,7 @@ class MetaSearchAgent implements MetaSearchAgentType {
             optimizationMode,
           );
           const elapsedTime3 = Date.now() - startTime3;
-          console.log(`  - Rerank docs: ${elapsedTime3 / 1000}s`);
+          console.log(`Rerank docs: ${elapsedTime3 / 1000}s`);
 
           return sortedDocs;
         })
@@ -708,7 +703,10 @@ class MetaSearchAgent implements MetaSearchAgentType {
 
           let docs: Document[] = [];
 
+          let startTime = Date.now();
           const linkDocs = await getDocumentsFromLinks({ links });
+          let elapsedTime = Date.now() - startTime;
+          console.log(`┌─ Get documents from links: ${elapsedTime / 1000}s`);
 
           const docGroups: Document[] = [];
 
@@ -742,6 +740,7 @@ class MetaSearchAgent implements MetaSearchAgentType {
             }
           });
 
+          startTime = Date.now();
           await Promise.all(
             docGroups.map(async (doc) => {
               const res = await llm.invoke(`
@@ -816,15 +815,20 @@ class MetaSearchAgent implements MetaSearchAgentType {
               docs.push(document);
             }),
           );
+          elapsedTime = Date.now() - startTime;
+          console.log(`┌─ Summarize documents: ${elapsedTime / 1000}s`);
 
           return { query: question, docs: docs };
         } else {
           question = question.replace(/<think>.*?<\/think>/g, '');
 
+          let startTime = Date.now();
           const res = await searchSearxng(question, {
             language: 'en',
             engines: this.config.activeEngines,
           });
+          const elapsedTime = Date.now() - startTime;
+          console.log(`┌─ Search from web(searxng): ${elapsedTime / 1000}s`);
 
           const documents = res.results.map(
             (result) =>
